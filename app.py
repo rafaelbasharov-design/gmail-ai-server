@@ -2,19 +2,16 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import openai
+from openai import OpenAI
 
 app = Flask(__name__)
 CORS(app)
 
-OPENAI_KEY = os.environ.get("OPENAI_API_KEY")
-if not OPENAI_KEY:
-    app.logger.warning("OPENAI_API_KEY is not set in environment variables")
-openai.api_key = OPENAI_KEY
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.route("/")
 def home():
-    return jsonify({"message": "Gmail AI Server running"})
+    return jsonify({"message": "Gmail AI Server running with new OpenAI SDK"})
 
 @app.route("/generate-reply", methods=["POST"])
 def generate_reply():
@@ -24,8 +21,8 @@ def generate_reply():
         if not text or len(text.strip()) < 3:
             return jsonify({"error": "No message provided"}), 400
 
-        # Chat completions (gpt-3.5-turbo stable)
-        resp = openai.ChatCompletion.create(
+        # Новый синтаксис для openai>=1.0.0
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are an assistant that writes short polite email replies."},
@@ -35,7 +32,7 @@ def generate_reply():
             temperature=0.6
         )
 
-        reply = resp.choices[0].message.content.strip()
+        reply = response.choices[0].message.content.strip()
         return jsonify({"reply": reply})
     except Exception as e:
         app.logger.exception("generate-reply error")
